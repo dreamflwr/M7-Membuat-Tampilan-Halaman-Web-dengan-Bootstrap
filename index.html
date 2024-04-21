@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Tugas M7</title>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="stylesheet" href="css/leaflet.css" />
+    <link rel="stylesheet" href="css/qgis2web.css" />
+    <link rel="stylesheet" href="css/fontawesome-all.min.css" />
+    <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="HTML5 website template" />
+    <meta name="keywords" content="global, template, html, sass, jquery" />
+    <meta name="author" content="Bucky Maler" />
+    <link rel="stylesheet" href="assets/css/main.css" />
+    <style>
+      #map {
+        width: 1200px;
+        height: 738px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="perspective effect-rotate-left">
+      <div class="container">
+        <div class="outer-nav--return"></div>
+        <div id="viewport" class="l-viewport">
+          <div class="l-wrapper">
+            <!--header-->
+            <header class="header">
+              <a class="header--logo" href="#0">
+                <img src="assets/img/logo.png" alt="Global" />
+                <p>Praktik SIG Berbasis Web</p>
+              </a>
+              <div class="header--nav-toggle">
+                <span></span>
+              </div>
+            </header>
+            <!--side nav-->
+            <nav class="l-side-nav">
+              <ul class="side-nav">
+                <li class="is-active"><span>Home</span></li>
+                <li><span>Description</span></li>
+                <li><span>Map</span></li>
+                <li><span>Contact</span></li>
+              </ul>
+            </nav>
+            <ul class="l-main-content main-content">
+              <!--home-->
+              <li class="l-section section section--is-active">
+                <div class="intro">
+                  <div class="intro--banner">
+                    <h1>Informasi Jaringan<br />Limbah dan Tingkat<br />Risiko Air Limbah<br />Kabupaten Bantul,<br />D.I. Yogyakarta</h1>
+                    <img src="assets/img/introduction-visual.png" alt="Welcome" />
+                  </div>
+                </div>
+              </li>
+              <!--about-->
+              <li class="l-section section">
+                <div class="about">
+                  <img src="assets/img/limbah.jpg" />
+                  <div class="about--banner">
+                    <h3>
+                      Kabupaten Bantul, Yogyakarta, adalah salah satu daerah Indonesia yang masih berkembang. Jumlah penduduk yang meningkat dan aktivitas industri di daerah ini telah meningkatkan tekanan pada sistem limbah. Air limbah yang
+                      tidak diolah dapat menyebabkan masalah daya dukung lingkungan yang mempengaruhi kualitas sumber daya alam dan sumber air. Web ini memberikan informasi jaringan limbah dan tingkat risiko air limbah yang bermanfaat dalam
+                      pembangunan kebijakan lingkungan dan manajemen limbah yang berkelanjutan di Kabupaten Bantul.
+                    </h3>
+                  </div>
+                </div>
+              </li>
+              <!--map-->
+              <li class="l-section section">
+                <div class="contact">
+                  <div class="contact--lockup">
+                    <div id="map"></div>
+                    <script src="js/qgis2web_expressions.js"></script>
+                    <script src="js/leaflet.js"></script>
+                    <script src="js/leaflet.rotatedMarker.js"></script>
+                    <script src="js/leaflet.pattern.js"></script>
+                    <script src="js/leaflet-hash.js"></script>
+                    <script src="js/Autolinker.min.js"></script>
+                    <script src="js/rbush.min.js"></script>
+                    <script src="js/labelgun.min.js"></script>
+                    <script src="js/labels.js"></script>
+                    <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+                    <script src="data/Kebun_1.js"></script>
+                    <script src="data/Ladang_2.js"></script>
+                    <script src="data/Sawah_3.js"></script>
+                    <script src="data/AdministrasiDesa_4.js"></script>
+                    <script src="data/PersebaranLimbah_5.js"></script>
+                    <script src="data/Sungai_6.js"></script>
+                    <script src="data/Jalan_7.js"></script>
+                    <script src="data/JaringanLimbah_8.js"></script>
+                    <script src="data/Pemerintahan_9.js"></script>
+                    <script>
+                      var map = L.map("map", {
+                        zoomControl: true,
+                        maxZoom: 28,
+                        minZoom: 1,
+                      }).fitBounds([
+                        [-8.032776803079164, 110.16261899772026],
+                        [-7.757899780272378, 110.55723718416458],
+                      ]);
+                      var hash = new L.Hash(map);
+                      map.attributionControl.setPrefix(
+                        '<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>'
+                      );
+                      var autolinker = new Autolinker({ truncate: { length: 30, location: "smart" } });
+                      function removeEmptyRowsFromPopupContent(content, feature) {
+                        var tempDiv = document.createElement("div");
+                        tempDiv.innerHTML = content;
+                        var rows = tempDiv.querySelectorAll("tr");
+                        for (var i = 0; i < rows.length; i++) {
+                          var td = rows[i].querySelector("td.visible-with-data");
+                          var key = td ? td.id : "";
+                          if (td && td.classList.contains("visible-with-data") && feature.properties[key] == null) {
+                            rows[i].parentNode.removeChild(rows[i]);
+                          }
+                        }
+                        return tempDiv.innerHTML;
+                      }
+                      document.querySelector(".leaflet-popup-pane").addEventListener(
+                        "load",
+                        function (event) {
+                          var tagName = event.target.tagName,
+                            popup = map._popup;
+                          // Also check if flag is already set.
+                          if (tagName === "IMG" && popup && !popup._updated) {
+                            popup._updated = true; // Set flag to prevent looping.
+                            popup.update();
+                          }
+                        },
+                        true
+                      );
+                      var bounds_group = new L.featureGroup([]);
+                      function setBounds() {}
+                      map.createPane("pane_OSMStandard_0");
+                      map.getPane("pane_OSMStandard_0").style.zIndex = 400;
+                      var layer_OSMStandard_0 = L.tileLayer("http://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                        pane: "pane_OSMStandard_0",
+                        opacity: 1.0,
+                        attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors, CC-BY-SA</a>',
+                        minZoom: 1,
+                        maxZoom: 28,
+                        minNativeZoom: 0,
+                        maxNativeZoom: 19,
+                      });
+                      layer_OSMStandard_0;
+                      map.addLayer(layer_OSMStandard_0);
+                      function pop_Kebun_1(feature, layer) {
+                        var popupContent =
+                          '<table>\
+                                    <tr>\
+                                        <th scope="row">NAMOBJ</th>\
+                                        <td>' +
+                          (feature.properties["NAMOBJ"] !== null ? autolinker.link(feature.properties["NAMOBJ"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["JNSKBN"] !== null ? autolinker.link(feature.properties["JNSKBN"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["FCODE"] !== null ? autolinker.link(feature.properties["FCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["PUDATE"] !== null ? autolinker.link(feature.properties["PUDATE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["AQDATE"] !== null ? autolinker.link(feature.properties["AQDATE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["REMARK"] !== null ? autolinker.link(feature.properties["REMARK"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KODLCO"] !== null ? autolinker.link(feature.properties["KODLCO"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SRS_ID"] !== null ? autolinker.link(feature.properties["SRS_ID"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["LCODE"] !== null ? autolinker.link(feature.properties["LCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["METADATA"] !== null ? autolinker.link(feature.properties["METADATA"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SHAPE_Leng"] !== null ? autolinker.link(feature.properties["SHAPE_Leng"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SHAPE_Area"] !== null ? autolinker.link(feature.properties["SHAPE_Area"].toLocaleString()) : "") +
+                          "</td>\
+                                    </tr>\
+                                </table>";
+                        layer.bindPopup(popupContent, { maxHeight: 400 });
+                        var popup = layer.getPopup();
+                        var content = popup.getContent();
+                        var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+                        popup.setContent(updatedContent);
+                      }
+
+                      function style_Kebun_1_0() {
+                        return {
+                          pane: "pane_Kebun_1",
+                          opacity: 1,
+                          color: "rgba(35,35,35,1.0)",
+                          dashArray: "",
+                          lineCap: "butt",
+                          lineJoin: "miter",
+                          weight: 1.0,
+                          fill: true,
+                          fillOpacity: 1,
+                          fillColor: "rgba(164,113,88,1.0)",
+                          interactive: true,
+                        };
+                      }
+                      map.createPane("pane_Kebun_1");
+                      map.getPane("pane_Kebun_1").style.zIndex = 401;
+                      map.getPane("pane_Kebun_1").style["mix-blend-mode"] = "normal";
+                      var layer_Kebun_1 = new L.geoJson(json_Kebun_1, {
+                        attribution: "",
+                        interactive: true,
+                        dataVar: "json_Kebun_1",
+                        layerName: "layer_Kebun_1",
+                        pane: "pane_Kebun_1",
+                        onEachFeature: pop_Kebun_1,
+                        style: style_Kebun_1_0,
+                      });
+                      bounds_group.addLayer(layer_Kebun_1);
+                      map.addLayer(layer_Kebun_1);
+                      function pop_Ladang_2(feature, layer) {
+                        var popupContent =
+                          '<table>\
+                                    <tr>\
+                                        <th scope="row">NAMOBJ</th>\
+                                        <td>' +
+                          (feature.properties["NAMOBJ"] !== null ? autolinker.link(feature.properties["NAMOBJ"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["FCODE"] !== null ? autolinker.link(feature.properties["FCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["REMARK"] !== null ? autolinker.link(feature.properties["REMARK"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["AQDATE"] !== null ? autolinker.link(feature.properties["AQDATE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["PUDATE"] !== null ? autolinker.link(feature.properties["PUDATE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KODLCO"] !== null ? autolinker.link(feature.properties["KODLCO"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SRS_ID"] !== null ? autolinker.link(feature.properties["SRS_ID"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["LCODE"] !== null ? autolinker.link(feature.properties["LCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["METADATA"] !== null ? autolinker.link(feature.properties["METADATA"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["JNSLDG"] !== null ? autolinker.link(feature.properties["JNSLDG"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["TNMLDG"] !== null ? autolinker.link(feature.properties["TNMLDG"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["TIPLDG"] !== null ? autolinker.link(feature.properties["TIPLDG"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SHAPE_Leng"] !== null ? autolinker.link(feature.properties["SHAPE_Leng"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SHAPE_Area"] !== null ? autolinker.link(feature.properties["SHAPE_Area"].toLocaleString()) : "") +
+                          "</td>\
+                                    </tr>\
+                                </table>";
+                        layer.bindPopup(popupContent, { maxHeight: 400 });
+                        var popup = layer.getPopup();
+                        var content = popup.getContent();
+                        var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+                        popup.setContent(updatedContent);
+                      }
+                      function style_Ladang_2_0() {
+                        return {
+                          pane: "pane_Ladang_2",
+                          opacity: 1,
+                          color: "rgba(35,35,35,1.0)",
+                          dashArray: "",
+                          lineCap: "butt",
+                          lineJoin: "miter",
+                          weight: 1.0,
+                          fill: true,
+                          fillOpacity: 1,
+                          fillColor: "rgba(213,180,60,1.0)",
+                          interactive: true,
+                        };
+                      }
+                      map.createPane("pane_Ladang_2");
+                      map.getPane("pane_Ladang_2").style.zIndex = 402;
+                      map.getPane("pane_Ladang_2").style["mix-blend-mode"] = "normal";
+                      var layer_Ladang_2 = new L.geoJson(json_Ladang_2, {
+                        attribution: "",
+                        interactive: true,
+                        dataVar: "json_Ladang_2",
+                        layerName: "layer_Ladang_2",
+                        pane: "pane_Ladang_2",
+                        onEachFeature: pop_Ladang_2,
+                        style: style_Ladang_2_0,
+                      });
+                      bounds_group.addLayer(layer_Ladang_2);
+                      map.addLayer(layer_Ladang_2);
+                      function pop_Sawah_3(feature, layer) {
+                        var popupContent =
+                          '<table>\
+                                    <tr>\
+                                        <th scope="row">NAMOBJ</th>\
+                                        <td>' +
+                          (feature.properties["NAMOBJ"] !== null ? autolinker.link(feature.properties["NAMOBJ"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["JNSSWH"] !== null ? autolinker.link(feature.properties["JNSSWH"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["FCODE"] !== null ? autolinker.link(feature.properties["FCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["AQDATE"] !== null ? autolinker.link(feature.properties["AQDATE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["PUDATE"] !== null ? autolinker.link(feature.properties["PUDATE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["REMARK"] !== null ? autolinker.link(feature.properties["REMARK"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KODLCO"] !== null ? autolinker.link(feature.properties["KODLCO"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SRS_ID"] !== null ? autolinker.link(feature.properties["SRS_ID"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["LCODE"] !== null ? autolinker.link(feature.properties["LCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["METADATA"] !== null ? autolinker.link(feature.properties["METADATA"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["TNMSWH"] !== null ? autolinker.link(feature.properties["TNMSWH"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SHAPE_Leng"] !== null ? autolinker.link(feature.properties["SHAPE_Leng"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SHAPE_Area"] !== null ? autolinker.link(feature.properties["SHAPE_Area"].toLocaleString()) : "") +
+                          "</td>\
+                                    </tr>\
+                                </table>";
+                        layer.bindPopup(popupContent, { maxHeight: 400 });
+                        var popup = layer.getPopup();
+                        var content = popup.getContent();
+                        var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+                        popup.setContent(updatedContent);
+                      }
+
+                      function style_Sawah_3_0() {
+                        return {
+                          pane: "pane_Sawah_3",
+                          opacity: 1,
+                          color: "rgba(35,35,35,1.0)",
+                          dashArray: "",
+                          lineCap: "butt",
+                          lineJoin: "miter",
+                          weight: 1.0,
+                          fill: true,
+                          fillOpacity: 1,
+                          fillColor: "rgba(114,155,111,1.0)",
+                          interactive: true,
+                        };
+                      }
+                      map.createPane("pane_Sawah_3");
+                      map.getPane("pane_Sawah_3").style.zIndex = 403;
+                      map.getPane("pane_Sawah_3").style["mix-blend-mode"] = "normal";
+                      var layer_Sawah_3 = new L.geoJson(json_Sawah_3, {
+                        attribution: "",
+                        interactive: true,
+                        dataVar: "json_Sawah_3",
+                        layerName: "layer_Sawah_3",
+                        pane: "pane_Sawah_3",
+                        onEachFeature: pop_Sawah_3,
+                        style: style_Sawah_3_0,
+                      });
+                      bounds_group.addLayer(layer_Sawah_3);
+                      map.addLayer(layer_Sawah_3);
+                      function pop_AdministrasiDesa_4(feature, layer) {
+                        var popupContent =
+                          '<table>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KDPPUM"] !== null ? autolinker.link(feature.properties["KDPPUM"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <th scope="row">NAMOBJ</th>\
+                                        <td>' +
+                          (feature.properties["NAMOBJ"] !== null ? autolinker.link(feature.properties["NAMOBJ"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["REMARK"] !== null ? autolinker.link(feature.properties["REMARK"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KDPBPS"] !== null ? autolinker.link(feature.properties["KDPBPS"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["FCODE"] !== null ? autolinker.link(feature.properties["FCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["LUASWH"] !== null ? autolinker.link(feature.properties["LUASWH"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["UUPP"] !== null ? autolinker.link(feature.properties["UUPP"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SRS_ID"] !== null ? autolinker.link(feature.properties["SRS_ID"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["LCODE"] !== null ? autolinker.link(feature.properties["LCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["METADATA"] !== null ? autolinker.link(feature.properties["METADATA"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KDEBPS"] !== null ? autolinker.link(feature.properties["KDEBPS"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KDEPUM"] !== null ? autolinker.link(feature.properties["KDEPUM"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KDCBPS"] !== null ? autolinker.link(feature.properties["KDCBPS"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KDCPUM"] !== null ? autolinker.link(feature.properties["KDCPUM"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KDBBPS"] !== null ? autolinker.link(feature.properties["KDBBPS"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KDBPUM"] !== null ? autolinker.link(feature.properties["KDBPUM"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["WADMKD"] !== null ? autolinker.link(feature.properties["WADMKD"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["WIADKD"] !== null ? autolinker.link(feature.properties["WIADKD"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["WADMKC"] !== null ? autolinker.link(feature.properties["WADMKC"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["WIADKC"] !== null ? autolinker.link(feature.properties["WIADKC"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["WADMKK"] !== null ? autolinker.link(feature.properties["WADMKK"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["WIADKK"] !== null ? autolinker.link(feature.properties["WIADKK"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["WADMPR"] !== null ? autolinker.link(feature.properties["WADMPR"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["WIADPR"] !== null ? autolinker.link(feature.properties["WIADPR"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["TIPADM"] !== null ? autolinker.link(feature.properties["TIPADM"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SHAPE_Leng"] !== null ? autolinker.link(feature.properties["SHAPE_Leng"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SHAPE_Area"] !== null ? autolinker.link(feature.properties["SHAPE_Area"].toLocaleString()) : "") +
+                          "</td>\
+                                    </tr>\
+                                </table>";
+                        layer.bindPopup(popupContent, { maxHeight: 400 });
+                        var popup = layer.getPopup();
+                        var content = popup.getContent();
+                        var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+                        popup.setContent(updatedContent);
+                      }
+
+                      function style_AdministrasiDesa_4_0() {
+                        return {
+                          pane: "pane_AdministrasiDesa_4",
+                          opacity: 1,
+                          color: "rgba(35,35,35,1.0)",
+                          dashArray: "",
+                          lineCap: "butt",
+                          lineJoin: "miter",
+                          weight: 1.0,
+                          fill: true,
+                          fillOpacity: 1,
+                          fillColor: "rgba(133,182,111,1.0)",
+                          interactive: true,
+                        };
+                      }
+                      map.createPane("pane_AdministrasiDesa_4");
+                      map.getPane("pane_AdministrasiDesa_4").style.zIndex = 404;
+                      map.getPane("pane_AdministrasiDesa_4").style["mix-blend-mode"] = "normal";
+                      var layer_AdministrasiDesa_4 = new L.geoJson(json_AdministrasiDesa_4, {
+                        attribution: "",
+                        interactive: true,
+                        dataVar: "json_AdministrasiDesa_4",
+                        layerName: "layer_AdministrasiDesa_4",
+                        pane: "pane_AdministrasiDesa_4",
+                        onEachFeature: pop_AdministrasiDesa_4,
+                        style: style_AdministrasiDesa_4_0,
+                      });
+                      bounds_group.addLayer(layer_AdministrasiDesa_4);
+                      map.addLayer(layer_AdministrasiDesa_4);
+                      function pop_PersebaranLimbah_5(feature, layer) {
+                        var popupContent =
+                          '<table>\
+                                    <tr>\
+                                        <th scope="row">fid</th>\
+                                        <td>' +
+                          (feature.properties["fid"] !== null ? autolinker.link(feature.properties["fid"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["ogc_fid"] !== null ? autolinker.link(feature.properties["ogc_fid"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["desa"] !== null ? autolinker.link(feature.properties["desa"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["kecamatan"] !== null ? autolinker.link(feature.properties["kecamatan"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["kabupaten"] !== null ? autolinker.link(feature.properties["kabupaten"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["air_limbah"] !== null ? autolinker.link(feature.properties["air_limbah"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["persampaha"] !== null ? autolinker.link(feature.properties["persampaha"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["drainase"] !== null ? autolinker.link(feature.properties["drainase"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["nama_opd"] !== null ? autolinker.link(feature.properties["nama_opd"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["kode_opd"] !== null ? autolinker.link(feature.properties["kode_opd"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["total"] !== null ? autolinker.link(feature.properties["total"].toLocaleString()) : "") +
+                          "</td>\
+                                    </tr>\
+                                </table>";
+                        layer.bindPopup(popupContent, { maxHeight: 400 });
+                        var popup = layer.getPopup();
+                        var content = popup.getContent();
+                        var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+                        popup.setContent(updatedContent);
+                      }
+
+                      function style_PersebaranLimbah_5_0(feature) {
+                        switch (String(feature.properties["fid"])) {
+                          case "1":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(120,148,202,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "2":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(44,197,231,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "3":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(106,86,236,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "4":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(101,113,226,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "5":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(155,29,208,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "6":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(233,214,119,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "7":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(96,90,219,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "8":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(206,128,68,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "9":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(146,220,56,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "10":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(33,235,178,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "11":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(109,60,235,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "12":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(159,109,219,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "13":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(208,96,216,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "14":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(132,21,206,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "15":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(88,162,218,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "16":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(22,236,108,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "17":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(193,204,28,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "18":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(235,170,135,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "19":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(209,80,125,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "20":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(178,236,142,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "21":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(240,68,197,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "22":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(37,232,99,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "23":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(74,231,62,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "24":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(77,202,177,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "25":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(23,225,57,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "26":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(209,49,118,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "27":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(227,225,76,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "28":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(94,208,159,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "29":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(170,239,110,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "30":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(140,224,235,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "31":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(226,72,67,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "32":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(68,130,216,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "33":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(229,14,39,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "34":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(73,234,239,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "35":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(82,238,82,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "36":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(207,53,230,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "37":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(238,190,139,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "38":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(74,211,109,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "39":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(195,78,227,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "40":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(22,171,224,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "41":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(144,209,40,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "42":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(16,236,35,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "43":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(217,47,161,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "44":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(199,215,108,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "45":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(55,166,225,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "46":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(149,57,229,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "47":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(240,113,179,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "48":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(236,145,133,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "49":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(228,160,23,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "50":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(41,121,201,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "51":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(218,19,198,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "52":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(122,219,184,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "53":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(108,221,216,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "54":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(219,104,58,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "55":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(204,143,57,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "56":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(204,143,57,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "57":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(217,98,68,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "58":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(222,66,97,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "59":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(169,128,239,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "60":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(223,19,189,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "61":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(201,63,199,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "62":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(119,135,204,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "63":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(100,66,223,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "64":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(104,221,53,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "65":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(213,89,93,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "66":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(240,219,26,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "67":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(22,25,207,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "68":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(236,135,162,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "69":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(52,214,23,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "70":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(164,224,22,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "71":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(92,122,206,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "72":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(206,163,32,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "73":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(71,211,139,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "74":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(182,223,33,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          case "75":
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(27,215,190,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                          default:
+                            return {
+                              pane: "pane_PersebaranLimbah_5",
+                              opacity: 1,
+                              color: "rgba(35,35,35,1.0)",
+                              dashArray: "",
+                              lineCap: "butt",
+                              lineJoin: "miter",
+                              weight: 1.0,
+                              fill: true,
+                              fillOpacity: 1,
+                              fillColor: "rgba(123,222,93,1.0)",
+                              interactive: true,
+                            };
+                            break;
+                        }
+                      }
+                      map.createPane("pane_PersebaranLimbah_5");
+                      map.getPane("pane_PersebaranLimbah_5").style.zIndex = 405;
+                      map.getPane("pane_PersebaranLimbah_5").style["mix-blend-mode"] = "normal";
+                      var layer_PersebaranLimbah_5 = new L.geoJson(json_PersebaranLimbah_5, {
+                        attribution: "",
+                        interactive: true,
+                        dataVar: "json_PersebaranLimbah_5",
+                        layerName: "layer_PersebaranLimbah_5",
+                        pane: "pane_PersebaranLimbah_5",
+                        onEachFeature: pop_PersebaranLimbah_5,
+                        style: style_PersebaranLimbah_5_0,
+                      });
+                      bounds_group.addLayer(layer_PersebaranLimbah_5);
+                      map.addLayer(layer_PersebaranLimbah_5);
+                      function pop_Sungai_6(feature, layer) {
+                        var popupContent =
+                          '<table>\
+                                    <tr>\
+                                        <th scope="row">NAMOBJ</th>\
+                                        <td>' +
+                          (feature.properties["NAMOBJ"] !== null ? autolinker.link(feature.properties["NAMOBJ"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["TIPSNG"] !== null ? autolinker.link(feature.properties["TIPSNG"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KLSSNG"] !== null ? autolinker.link(feature.properties["KLSSNG"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["FCODE"] !== null ? autolinker.link(feature.properties["FCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["REMARK"] !== null ? autolinker.link(feature.properties["REMARK"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SRS_ID"] !== null ? autolinker.link(feature.properties["SRS_ID"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["LCODE"] !== null ? autolinker.link(feature.properties["LCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["METADATA"] !== null ? autolinker.link(feature.properties["METADATA"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["NAMWS"] !== null ? autolinker.link(feature.properties["NAMWS"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["NAMDAS"] !== null ? autolinker.link(feature.properties["NAMDAS"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["STATUS"] !== null ? autolinker.link(feature.properties["STATUS"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["WMAX"] !== null ? autolinker.link(feature.properties["WMAX"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["DBTMAX"] !== null ? autolinker.link(feature.properties["DBTMAX"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SLPRT"] !== null ? autolinker.link(feature.properties["SLPRT"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SHAPE_Leng"] !== null ? autolinker.link(feature.properties["SHAPE_Leng"].toLocaleString()) : "") +
+                          "</td>\
+                                    </tr>\
+                                </table>";
+                        layer.bindPopup(popupContent, { maxHeight: 400 });
+                        var popup = layer.getPopup();
+                        var content = popup.getContent();
+                        var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+                        popup.setContent(updatedContent);
+                      }
+
+                      function style_Sungai_6_0() {
+                        return {
+                          pane: "pane_Sungai_6",
+                          opacity: 1,
+                          color: "rgba(166,206,227,1.0)",
+                          dashArray: "",
+                          lineCap: "square",
+                          lineJoin: "bevel",
+                          weight: 1.0,
+                          fillOpacity: 0,
+                          interactive: true,
+                        };
+                      }
+                      map.createPane("pane_Sungai_6");
+                      map.getPane("pane_Sungai_6").style.zIndex = 406;
+                      map.getPane("pane_Sungai_6").style["mix-blend-mode"] = "normal";
+                      var layer_Sungai_6 = new L.geoJson(json_Sungai_6, {
+                        attribution: "",
+                        interactive: true,
+                        dataVar: "json_Sungai_6",
+                        layerName: "layer_Sungai_6",
+                        pane: "pane_Sungai_6",
+                        onEachFeature: pop_Sungai_6,
+                        style: style_Sungai_6_0,
+                      });
+                      bounds_group.addLayer(layer_Sungai_6);
+                      map.addLayer(layer_Sungai_6);
+                      function pop_Jalan_7(feature, layer) {
+                        var popupContent =
+                          '<table>\
+                                    <tr>\
+                                        <th scope="row">NAMRJL</th>\
+                                        <td>' +
+                          (feature.properties["NAMRJL"] !== null ? autolinker.link(feature.properties["NAMRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KONRJL"] !== null ? autolinker.link(feature.properties["KONRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["MATRJL"] !== null ? autolinker.link(feature.properties["MATRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["FGSRJL"] !== null ? autolinker.link(feature.properties["FGSRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["UTKRJL"] !== null ? autolinker.link(feature.properties["UTKRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["TOLRJL"] !== null ? autolinker.link(feature.properties["TOLRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["WLYRJL"] !== null ? autolinker.link(feature.properties["WLYRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["AUTRJL"] !== null ? autolinker.link(feature.properties["AUTRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KLSRJL"] !== null ? autolinker.link(feature.properties["KLSRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SPCRJL"] !== null ? autolinker.link(feature.properties["SPCRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["JPARJL"] !== null ? autolinker.link(feature.properties["JPARJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["ARHRJL"] !== null ? autolinker.link(feature.properties["ARHRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["STARJL"] !== null ? autolinker.link(feature.properties["STARJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["KLLRJL"] !== null ? autolinker.link(feature.properties["KLLRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["MEDRJL"] !== null ? autolinker.link(feature.properties["MEDRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["LOCRJL"] !== null ? autolinker.link(feature.properties["LOCRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["JARRJL"] !== null ? autolinker.link(feature.properties["JARRJL"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["FCODE"] !== null ? autolinker.link(feature.properties["FCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["REMARK"] !== null ? autolinker.link(feature.properties["REMARK"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SRS_ID"] !== null ? autolinker.link(feature.properties["SRS_ID"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["LCODE"] !== null ? autolinker.link(feature.properties["LCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["METADATA"] !== null ? autolinker.link(feature.properties["METADATA"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SHAPE_Leng"] !== null ? autolinker.link(feature.properties["SHAPE_Leng"].toLocaleString()) : "") +
+                          "</td>\
+                                    </tr>\
+                                </table>";
+                        layer.bindPopup(popupContent, { maxHeight: 400 });
+                        var popup = layer.getPopup();
+                        var content = popup.getContent();
+                        var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+                        popup.setContent(updatedContent);
+                      }
+
+                      function style_Jalan_7_0() {
+                        return {
+                          pane: "pane_Jalan_7",
+                          opacity: 1,
+                          color: "rgba(215,25,28,1.0)",
+                          dashArray: "",
+                          lineCap: "square",
+                          lineJoin: "bevel",
+                          weight: 1.0,
+                          fillOpacity: 0,
+                          interactive: true,
+                        };
+                      }
+                      map.createPane("pane_Jalan_7");
+                      map.getPane("pane_Jalan_7").style.zIndex = 407;
+                      map.getPane("pane_Jalan_7").style["mix-blend-mode"] = "normal";
+                      var layer_Jalan_7 = new L.geoJson(json_Jalan_7, {
+                        attribution: "",
+                        interactive: true,
+                        dataVar: "json_Jalan_7",
+                        layerName: "layer_Jalan_7",
+                        pane: "pane_Jalan_7",
+                        onEachFeature: pop_Jalan_7,
+                        style: style_Jalan_7_0,
+                      });
+                      bounds_group.addLayer(layer_Jalan_7);
+                      map.addLayer(layer_Jalan_7);
+                      function pop_JaringanLimbah_8(feature, layer) {
+                        var popupContent =
+                          '<table>\
+                                    <tr>\
+                                        <th scope="row">fid</th>\
+                                        <td>' +
+                          (feature.properties["fid"] !== null ? autolinker.link(feature.properties["fid"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["ogc_fid"] !== null ? autolinker.link(feature.properties["ogc_fid"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["id"] !== null ? autolinker.link(feature.properties["id"].toLocaleString()) : "") +
+                          "</td>\
+                                    </tr>\
+                                </table>";
+                        layer.bindPopup(popupContent, { maxHeight: 400 });
+                        var popup = layer.getPopup();
+                        var content = popup.getContent();
+                        var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+                        popup.setContent(updatedContent);
+                      }
+
+                      function style_JaringanLimbah_8_0() {
+                        return {
+                          pane: "pane_JaringanLimbah_8",
+                          opacity: 1,
+                          color: "rgba(91,249,107,1.0)",
+                          dashArray: "",
+                          lineCap: "square",
+                          lineJoin: "bevel",
+                          weight: 1.0,
+                          fillOpacity: 0,
+                          interactive: true,
+                        };
+                      }
+                      map.createPane("pane_JaringanLimbah_8");
+                      map.getPane("pane_JaringanLimbah_8").style.zIndex = 408;
+                      map.getPane("pane_JaringanLimbah_8").style["mix-blend-mode"] = "normal";
+                      var layer_JaringanLimbah_8 = new L.geoJson(json_JaringanLimbah_8, {
+                        attribution: "",
+                        interactive: true,
+                        dataVar: "json_JaringanLimbah_8",
+                        layerName: "layer_JaringanLimbah_8",
+                        pane: "pane_JaringanLimbah_8",
+                        onEachFeature: pop_JaringanLimbah_8,
+                        style: style_JaringanLimbah_8_0,
+                      });
+                      bounds_group.addLayer(layer_JaringanLimbah_8);
+                      map.addLayer(layer_JaringanLimbah_8);
+                      function pop_Pemerintahan_9(feature, layer) {
+                        var popupContent =
+                          '<table>\
+                                    <tr>\
+                                        <th scope="row">NAMOBJ</th>\
+                                        <td>' +
+                          (feature.properties["NAMOBJ"] !== null ? autolinker.link(feature.properties["NAMOBJ"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["FGSGOV"] !== null ? autolinker.link(feature.properties["FGSGOV"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["LUAS"] !== null ? autolinker.link(feature.properties["LUAS"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["FCODE"] !== null ? autolinker.link(feature.properties["FCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["REMARK"] !== null ? autolinker.link(feature.properties["REMARK"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["SRS_ID"] !== null ? autolinker.link(feature.properties["SRS_ID"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["LCODE"] !== null ? autolinker.link(feature.properties["LCODE"].toLocaleString()) : "") +
+                          '</td>\
+                                    </tr>\
+                                    <tr>\
+                                        <td colspan="2">' +
+                          (feature.properties["METADATA"] !== null ? autolinker.link(feature.properties["METADATA"].toLocaleString()) : "") +
+                          "</td>\
+                                    </tr>\
+                                </table>";
+                        layer.bindPopup(popupContent, { maxHeight: 400 });
+                        var popup = layer.getPopup();
+                        var content = popup.getContent();
+                        var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+                        popup.setContent(updatedContent);
+                      }
+
+                      function style_Pemerintahan_9_0() {
+                        return {
+                          pane: "pane_Pemerintahan_9",
+                          radius: 4.0,
+                          opacity: 1,
+                          color: "rgba(35,35,35,1.0)",
+                          dashArray: "",
+                          lineCap: "butt",
+                          lineJoin: "miter",
+                          weight: 1,
+                          fill: true,
+                          fillOpacity: 1,
+                          fillColor: "rgba(233,233,233,1.0)",
+                          interactive: true,
+                        };
+                      }
+                      map.createPane("pane_Pemerintahan_9");
+                      map.getPane("pane_Pemerintahan_9").style.zIndex = 409;
+                      map.getPane("pane_Pemerintahan_9").style["mix-blend-mode"] = "normal";
+                      var layer_Pemerintahan_9 = new L.geoJson(json_Pemerintahan_9, {
+                        attribution: "",
+                        interactive: true,
+                        dataVar: "json_Pemerintahan_9",
+                        layerName: "layer_Pemerintahan_9",
+                        pane: "pane_Pemerintahan_9",
+                        onEachFeature: pop_Pemerintahan_9,
+                        pointToLayer: function (feature, latlng) {
+                          var context = {
+                            feature: feature,
+                            variables: {},
+                          };
+                          return L.circleMarker(latlng, style_Pemerintahan_9_0(feature));
+                        },
+                      });
+                      bounds_group.addLayer(layer_Pemerintahan_9);
+                      map.addLayer(layer_Pemerintahan_9);
+                      var osmGeocoder = new L.Control.Geocoder({
+                        collapsed: true,
+                        position: "topleft",
+                        text: "Search",
+                        title: "Testing",
+                      }).addTo(map);
+                      document.getElementsByClassName("leaflet-control-geocoder-icon")[0].className += " fa fa-search";
+                      document.getElementsByClassName("leaflet-control-geocoder-icon")[0].title += "Search for a place";
+                      var baseMaps = {};
+                      L.control
+                        .layers(
+                          baseMaps,
+                          {
+                            '<img src="legend/Pemerintahan_9.png" /> Pemerintahan': layer_Pemerintahan_9,
+                            '<img src="legend/JaringanLimbah_8.png" /> Jaringan Limbah': layer_JaringanLimbah_8,
+                            '<img src="legend/Jalan_7.png" /> Jalan': layer_Jalan_7,
+                            '<img src="legend/Sungai_6.png" /> Sungai': layer_Sungai_6,
+                            'Persebaran Limbah<br /><table><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_10.png" /></td><td>1</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_21.png" /></td><td>2</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_32.png" /></td><td>3</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_43.png" /></td><td>4</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_54.png" /></td><td>5</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_65.png" /></td><td>6</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_76.png" /></td><td>7</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_87.png" /></td><td>8</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_98.png" /></td><td>9</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_109.png" /></td><td>10</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_1110.png" /></td><td>11</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_1211.png" /></td><td>12</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_1312.png" /></td><td>13</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_1413.png" /></td><td>14</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_1514.png" /></td><td>15</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_1615.png" /></td><td>16</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_1716.png" /></td><td>17</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_1817.png" /></td><td>18</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_1918.png" /></td><td>19</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_2019.png" /></td><td>20</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_2120.png" /></td><td>21</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_2221.png" /></td><td>22</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_2322.png" /></td><td>23</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_2423.png" /></td><td>24</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_2524.png" /></td><td>25</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_2625.png" /></td><td>26</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_2726.png" /></td><td>27</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_2827.png" /></td><td>28</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_2928.png" /></td><td>29</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_3029.png" /></td><td>30</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_3130.png" /></td><td>31</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_3231.png" /></td><td>32</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_3332.png" /></td><td>33</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_3433.png" /></td><td>34</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_3534.png" /></td><td>35</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_3635.png" /></td><td>36</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_3736.png" /></td><td>37</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_3837.png" /></td><td>38</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_3938.png" /></td><td>39</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_4039.png" /></td><td>40</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_4140.png" /></td><td>41</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_4241.png" /></td><td>42</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_4342.png" /></td><td>43</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_4443.png" /></td><td>44</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_4544.png" /></td><td>45</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_4645.png" /></td><td>46</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_4746.png" /></td><td>47</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_4847.png" /></td><td>48</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_4948.png" /></td><td>49</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_5049.png" /></td><td>50</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_5150.png" /></td><td>51</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_5251.png" /></td><td>52</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_5352.png" /></td><td>53</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_5453.png" /></td><td>54</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_5554.png" /></td><td>55</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_5655.png" /></td><td>56</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_5756.png" /></td><td>57</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_5857.png" /></td><td>58</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_5958.png" /></td><td>59</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_6059.png" /></td><td>60</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_6160.png" /></td><td>61</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_6261.png" /></td><td>62</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_6362.png" /></td><td>63</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_6463.png" /></td><td>64</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_6564.png" /></td><td>65</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_6665.png" /></td><td>66</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_6766.png" /></td><td>67</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_6867.png" /></td><td>68</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_6968.png" /></td><td>69</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_7069.png" /></td><td>70</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_7170.png" /></td><td>71</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_7271.png" /></td><td>72</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_7372.png" /></td><td>73</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_7473.png" /></td><td>74</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_7574.png" /></td><td>75</td></tr><tr><td style="text-align: center;"><img src="legend/PersebaranLimbah_5_75.png" /></td><td></td></tr></table>':
+                              layer_PersebaranLimbah_5,
+                            '<img src="legend/AdministrasiDesa_4.png" /> Administrasi Desa': layer_AdministrasiDesa_4,
+                            '<img src="legend/Sawah_3.png" /> Sawah': layer_Sawah_3,
+                            '<img src="legend/Ladang_2.png" /> Ladang': layer_Ladang_2,
+                            '<img src="legend/Kebun_1.png" /> Kebun': layer_Kebun_1,
+                            "OSM Standard": layer_OSMStandard_0,
+                          },
+                          { collapsed: false }
+                        )
+                        .addTo(map);
+                      setBounds();
+                    </script>
+                  </div>
+                </div>
+              </li>
+              <!--contact-->
+              <li class="l-section section">
+                <div class="hire">
+                  <h2>Contact</h2>
+                  <form class="work-request">
+                    <div class="work-request--options">
+                      <span class="options-a">
+                        <input id="opt-1" type="checkbox" value="app design" />
+                        <label for="opt-1">
+                          <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 150 111" style="enable-background: new 0 0 150 111" xml:space="preserve">
+                            <g transform="translate(0.000000,111.000000) scale(0.100000,-0.100000)">
+                              <path d="M950,705L555,310L360,505C253,612,160,700,155,700c-6,0-44-34-85-75l-75-75l278-278L550-5l475,475c261,261,475,480,475,485c0,13-132,145-145,145C1349,1100,1167,922,950,705z" />
+                            </g>
+                          </svg>
+                          <a href="https://twitter.com/dreamflwr_?t=uilMgEs3hjzOmsE21yoqEA&s=09">Twitter</a>
+                        </label>
+                        <input id="opt-2" type="checkbox" value="graphic design" />
+                        <label for="opt-2">
+                          <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 150 111" style="enable-background: new 0 0 150 111" xml:space="preserve">
+                            <g transform="translate(0.000000,111.000000) scale(0.100000,-0.100000)">
+                              <path d="M950,705L555,310L360,505C253,612,160,700,155,700c-6,0-44-34-85-75l-75-75l278-278L550-5l475,475c261,261,475,480,475,485c0,13-132,145-145,145C1349,1100,1167,922,950,705z" />
+                            </g>
+                          </svg>
+                          <a href="https://www.linkedin.com/in/azhayuniati">Linkedin</a>
+                        </label>
+                        <input id="opt-3" type="checkbox" value="motion design" />
+                        <label for="opt-3">
+                          <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 150 111" style="enable-background: new 0 0 150 111" xml:space="preserve">
+                            <g transform="translate(0.000000,111.000000) scale(0.100000,-0.100000)">
+                              <path d="M950,705L555,310L360,505C253,612,160,700,155,700c-6,0-44-34-85-75l-75-75l278-278L550-5l475,475c261,261,475,480,475,485c0,13-132,145-145,145C1349,1100,1167,922,950,705z" />
+                            </g>
+                          </svg>
+                          <a href="https://www.instagram.com/azyun_?igsh=OGQ5ZDc2ODk2ZA==">Instagram</a>
+                        </label>
+                      </span>
+                    </div>
+                    <div class="work-request--information">
+                      <div class="information-name">
+                        <input id="name" type="text" spellcheck="false" />
+                        <label for="name">Name</label>
+                      </div>
+                      <div class="information-email">
+                        <input id="email" type="email" spellcheck="false" />
+                        <label for="email">Email</label>
+                      </div>
+                    </div>
+                    <input type="submit" value="Send Request" />
+                  </form>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <!--outer nav-->
+      <ul class="outer-nav">
+        <li class="is-active">Home</li>
+        <li>Description</li>
+        <li>Map</li>
+        <li>Contact</li>
+      </ul>
+    </div>
+    <!--footer-->
+    <p>@2024 Azha Yuniati. 22/492527/SV/20535. TSPD 2022.</p>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+    <script>
+      window.jQuery || document.write('<script src="assets/js/vendor/jquery-2.2.4.min.js"><\/script>');
+    </script>
+    <script src="assets/js/functions-min.js"></script>
+  </body>
+</html>
